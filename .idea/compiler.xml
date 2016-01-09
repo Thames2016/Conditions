@@ -26,5 +26,8 @@
         <module name="Thames" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="Thames" target="1.5" />
+    </bytecodeTargetLevel>
   </component>
 </project>
