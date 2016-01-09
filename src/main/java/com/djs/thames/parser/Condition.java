@@ -1,7 +1,12 @@
 package com.djs.thames.parser;
 
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class Condition {
+
+	static final Logger logger = LogManager.getLogger(Condition.class.getName());
 
 	private int reach;
 	private int state;
@@ -97,11 +102,10 @@ public class Condition {
 				}
 			}
 
-			// Not found
-			// TODO - Log it
+			logger.error("Unknown reach name: {}", reachName);
 		}
 		else {
-			// TODO - LOG it - empty reach name passed in
+			logger.error("Empty reach name");
 		}
 
 		return -1;
