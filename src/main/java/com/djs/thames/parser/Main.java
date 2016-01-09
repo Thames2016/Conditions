@@ -10,16 +10,15 @@ public class Main {
 
 	public static void main(String[] args) {
 
+		ConditionsProperties.initialise();
+
 		ConditionParser parser = new ConditionParser();
 
 		List<Condition> conditions = parser.getConditions();
 
 		if( conditions != null){
-//			for( Condition condition: conditions){
-//				System.out.println( condition.getReachName() + " : " + condition.getStateName());
-//			}
 
-			SqlServerDAL dal = new SqlServerDAL("jdbc:sqlserver://jerry\\SQL2012;database=DS_Conditions_Test;user=sa;password=sandwich;");
+			SqlServerDAL dal = new SqlServerDAL(ConditionsProperties.getSqlConnection());
 			dal.persistConditions(conditions);
 
 			List<Condition> latestConditions = dal.getConditions();
@@ -31,8 +30,6 @@ public class Main {
 			List<Condition> earlierConditions = dal.getConditions(cal);
 			showConditions(earlierConditions, "Conditions at " + new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(cal.getTime()));
 		}
-
-
 
 	}
 

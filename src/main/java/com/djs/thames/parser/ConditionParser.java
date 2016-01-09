@@ -1,5 +1,7 @@
 package com.djs.thames.parser;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -11,9 +13,10 @@ import java.util.List;
 
 public class ConditionParser {
 
+    static final Logger logger = LogManager.getLogger(ConditionParser.class.getName());
+
 	private static final int maxTries = 5;
     private static final int retrySeconds = 10;
-    private static final String conditionsUrl = "http://riverconditions.environment-agency.gov.uk/";
 
     public List<Condition> getConditions(){
 
@@ -24,14 +27,15 @@ public class ConditionParser {
         int tries = 0;
         while( doc == null && tries++ < maxTries ) {
             try {
-                doc = Jsoup.connect(conditionsUrl).get();
+                doc = Jsoup.connect(ConditionsProperties.getConditionsUrl()).get();
             } catch (IOException ex) {
-                // TODO
+                logger.error("Failed to retrieve page at {}", ConditionsProperties.getConditionsUrl());
+                logger.error("Exception: {}", ex.getClass().toString());
             }
 
             if( doc == null){
 
-                System.out.println("Failed to get page from environment agency - attempt number " + tries);
+                logger.warn("Failed to get page from environment agency - attempt number {}", tries);
 
                 try {
                     Thread.sleep(retrySeconds * 1000);
@@ -42,16 +46,16 @@ public class ConditionParser {
         }
 
         if( doc != null) {
+
             Elements tables = doc.getElementsByClass("advices");
             if (tables.size() == 3) {
 
                 for (Element table : tables) {
-                    Elements rows = table.getElementsByTag("tr");
 
+                    Elements rows = table.getElementsByTag("tr");
                     for (Element row : rows) {
 
                         Elements cells = row.getElementsByTag("td");
-
                         if (cells.size() == 2) {
 
                             String reachName = cells.get(0).text();
@@ -61,23 +65,17 @@ public class ConditionParser {
 
                             if (condition != null) {
                                 conditions.add(condition);
+                                logger.trace("Created condition for " + reachName);
                             } else {
-                                // TODO - log it
+                                logger.error("Failed to create a condition for [reach,state] = [{},{}]", reachName, stateName);
                             }
-                        } else {
-                            // TODO - incorrect result
                         }
                     }
                 }
             } else {
-                // TODO - incorrect result
+                logger.error("Unexpected page format - number of tables = {}", tables.size());
             }
         }
-        else
-        {
-            // TODO - Can't get page
-        }
-
 
 		return conditions;
 	}
