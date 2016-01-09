@@ -50,9 +50,9 @@ public class ConditionsProperties {
                 throw new FileNotFoundException("property file '" + propFileName + "' not found in the classpath");
             }
 
-            conditionsUrl = prop.getProperty(conditionsUrlName);
-            sqlServerDriver = prop.getProperty(sqlServerDriverName);
-            sqlConnection = prop.getProperty(sqlConnectionName);
+            conditionsUrl = getProperty(prop, conditionsUrlName);
+            sqlServerDriver = getProperty(prop, sqlServerDriverName);
+            sqlConnection = getProperty(prop, sqlConnectionName);
 
         } catch (Exception e) {
             logger.error("Failed to load properties");
@@ -61,10 +61,20 @@ public class ConditionsProperties {
             try {
                 inputStream.close();
             }
-            catch(IOException ex){
+            catch(Exception ex){
                 logger.error("Exception whilst closing input stream");
                 logger.error(ex);
             }
         }
     }
+
+    private static String getProperty(Properties properties, String propertyName){
+
+        if( System.getProperty(propertyName) != null){
+            return System.getProperty(propertyName);
+        }
+
+        return properties.getProperty(propertyName);
+    }
+
 }

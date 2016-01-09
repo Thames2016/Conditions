@@ -65,7 +65,6 @@ public class ConditionParser {
 
                             if (condition != null) {
                                 conditions.add(condition);
-                                logger.trace("Created condition for " + reachName);
                             } else {
                                 logger.error("Failed to create a condition for [reach,state] = [{},{}]", reachName, stateName);
                             }
