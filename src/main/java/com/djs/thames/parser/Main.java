@@ -19,14 +19,14 @@ public class Main {
 //				System.out.println( condition.getReachName() + " : " + condition.getStateName());
 //			}
 
-			SqlServerDAL dal = new SqlServerDAL("jdbc:sqlserver://dsaund-9020;database=DS_Conditions_Test;user=sa;password=P0rtra1t;");
+			SqlServerDAL dal = new SqlServerDAL("jdbc:sqlserver://jerry\\SQL2012;database=DS_Conditions_Test;user=sa;password=sandwich;");
 			dal.persistConditions(conditions);
 
 			List<Condition> latestConditions = dal.getConditions();
 			showConditions(latestConditions, "Latest conditions");
 
 			Calendar cal = new GregorianCalendar();
-			cal.set(2016, 0, 5, 17, 27, 0);
+			cal.set(2016, Calendar.JANUARY, 5, 17, 27, 0);
 
 			List<Condition> earlierConditions = dal.getConditions(cal);
 			showConditions(earlierConditions, "Conditions at " + new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(cal.getTime()));
