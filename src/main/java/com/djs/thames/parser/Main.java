@@ -29,6 +29,18 @@ public class Main {
 
 			List<Condition> earlierConditions = dal.getConditions(cal);
 			showConditions(earlierConditions, "Conditions at " + new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(cal.getTime()));
+
+			Channel channel = Channel.Email;
+			List<Condition> changedConditions = dal.getChangedConditionsForChannel(channel);
+			if( changedConditions != null ){
+				showConditions(changedConditions, "Changes to be sent via " + channel);
+
+                List<String> subscribers = dal.getSubscribers(channel, CommunicationType.ConditionChange);
+
+				Emailer emailer = new Emailer();
+
+				emailer.sendEmail(subscribers, changedConditions);
+			}
 		}
 
 	}
