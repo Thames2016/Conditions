@@ -72,6 +72,13 @@ public class SqlServerDAL extends DataAccessLayer {
 		return getConditions(sql);
 	}
 
+	public List<Condition> getConditions(long conditionId){
+
+		String sql = "SELECT * FROM Conditions WHERE Id = " + conditionId;
+
+		return getConditions(sql);
+	}
+
 	public List<Condition> getConditions(Calendar timestamp){
 
 		String time = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(timestamp.getTime());
@@ -81,6 +88,129 @@ public class SqlServerDAL extends DataAccessLayer {
 				     time + "')";
 
 		return getConditions(sql);
+	}
+
+	public List<Condition> getChangedConditionsForChannel(Channel channel) {
+
+		// Get the ID of the Conditions last sent on this channel
+		// NULL -> None sent previously
+		// -1   -> Sent recently - don't send anything now
+		// >= 0 -> ID of Conditions last notified - need to find what's changed
+
+		List<Condition> conditions = null;
+
+		String sql =
+		"declare @v_last_communication_time datetime2 " +
+		"select @v_last_communication_time = MAX(CommunicationCreated) " +
+		"from Communication " +
+		"where CommunicationTypeId = ? AND CommunicationChannelId = ? " +
+			"select CASE " +
+				"WHEN @v_last_communication_time is null THEN NULL " +
+				"WHEN DATEDIFF(MINUTE, @v_last_communication_time, CURRENT_TIMESTAMP) < (SELECT Window from ChannelWindow WHERE ChannelId = ?) THEN -1 " +
+				"ELSE (SELECT ConditionsId from Communication WHERE CommunicationCreated = @v_last_communication_time) " +
+				"END ConditionsId";
+
+		try {
+			Connection connection = getConnection();
+			if (connection != null) {
+
+				PreparedStatement stmt = connection.prepareStatement(sql);
+				stmt.setInt(1, CommunicationType.ConditionChange.getValue());
+				stmt.setInt(2, Channel.Email.getValue());
+				stmt.setInt(3, Channel.Email.getValue());
+
+				ResultSet results = stmt.executeQuery();
+
+				if(results != null){
+					if( results.next()) {
+						long lastConditionsSent = results.getLong("ConditionsId");
+
+						if( results.wasNull() ){
+							// send the latest conditions
+							conditions = getConditions();
+						} else if(lastConditionsSent > 0){
+							// Send diff
+							conditions = createDiff(getConditions(lastConditionsSent), getConditions());
+						}
+						// else (latestConditionsSent <= 0 means nothing to send)
+
+					} else {
+						logger.error("No records returned from SQL query to retrieve last sent conditions");
+						logger.error(sql);
+					}
+				}
+				else{
+					logger.error("Failed to execute SQL query to retrieve last sent conditions");
+					logger.error(sql);
+				}
+			}
+		}
+		catch(SQLException ex){
+			logger.error("An exception occurred whilst retrieving last sent conditions");
+			logger.error(ex);
+		}
+
+		return conditions;
+	}
+
+	public List<String> getSubscribers(Channel channel, CommunicationType communicationType){
+
+		String sql = "SELECT Address FROM Subscriber WHERE CommunicationTypeId = ?";
+
+		List<String> subscribers = new ArrayList<String>();
+
+		try {
+			Connection connection = getConnection();
+			if (connection != null) {
+
+				PreparedStatement stmt = connection.prepareStatement(sql);
+				stmt.setInt(1, communicationType.getValue());
+				ResultSet results = stmt.executeQuery();
+
+				if (results != null) {
+					while (results.next()) {
+
+						subscribers.add(results.getString("Address"));
+					}
+				}
+			}
+		}
+		catch(SQLException ex){
+			logger.error("An exception occurred whilst retrieving subscribers");
+			logger.error(ex);
+		}
+
+		return subscribers;
+	}
+
+
+	private List<Condition> createDiff(List<Condition> first, List<Condition> second){
+
+		List<Condition> diff = new ArrayList<Condition>();
+
+		for( int i=0; i<numReaches; i++){
+			Condition firstCondition = first.get(i);
+			Condition secondCondition = second.get(i);
+
+			if( firstCondition.getReach() == secondCondition.getReach()){
+
+				if( firstCondition.getState() != secondCondition.getState()){
+
+					Condition condition = new Condition();
+					condition.setReach(secondCondition.getReach());
+					condition.setState(secondCondition.getState());
+					diff.add(condition);
+				}
+			} else {
+				logger.error("Reaches are not in the same order: at index {} first = {} and second = {}", i, firstCondition.getReach(), secondCondition.getReach());
+			}
+		}
+
+		if( diff.size() > 0) {
+			return diff;
+		}
+
+		return null;
 	}
 
 	private List<Condition> getConditions(String sql){
@@ -122,6 +252,7 @@ public class SqlServerDAL extends DataAccessLayer {
 
 		return conditions;
 	}
+
 
 	public Connection getConnection() {
 		try {
